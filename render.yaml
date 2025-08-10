@@ -19,3 +19,7 @@ services:
         value: "5431714552"
       - key: BASE_URL
         value: "https://tenseihost.onrender.com"
+      - key: GOOGLE_CLIENT_ID
+        value: "96557220545-51eompa8epqef2fbo0t8810pisjnvcjt.apps.googleusercontent.com"
+      - key: GOOGLE_CLIENT_SECRET
+        value: "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"
