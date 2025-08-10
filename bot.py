@@ -3,6 +3,7 @@ import asyncio
 import time
 import math
 import json
+import re
 from datetime import datetime
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
@@ -21,11 +22,9 @@ BOT_USERNAME = os.getenv("BOT_USERNAME")
 GDRIVE_FOLDER_ID = os.getenv("GDRIVE_FOLDER_ID")
 ADMINS = [int(x) for x in os.getenv("ADMINS").split()]
 BASE_URL = os.getenv("BASE_URL")
-
-# Google OAuth credentials (from your provided JSON)
-GOOGLE_CLIENT_ID = "96557220545-51eompa8epqef2fbo0t8810pisjnvcjt.apps.googleusercontent.com"
-GOOGLE_CLIENT_SECRET = "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"
-REDIRECT_URI = "https://tenseihost.onrender.com/auth"
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+REDIRECT_URI = f"{BASE_URL}/auth"
 
 # Initialize bot
 app = Client(
@@ -68,8 +67,24 @@ def save_credentials(creds):
     with open(TOKEN_FILE, 'w') as token:
         token.write(creds.to_json())
 
+# Extract authorization code from URL
+def extract_code_from_url(url):
+    match = re.search(r'[?&]code=([^&]+)', url)
+    return match.group(1) if match else url
+
+# Convert Google Drive share link to direct download link
+def convert_gdrive_link(link):
+    pattern = r'https://drive\.google\.com/file/d/([a-zA-Z0-9_-]+)'
+    match = re.search(pattern, link)
+    if match:
+        file_id = match.group(1)
+        return f"https://docs.google.com/uc?export=download&id={file_id}"
+    return link
+
 # Progress bar formatting
 def progress_bar(current, total):
+    if total == 0:
+        total = current  # Avoid division by zero
     percentage = current / total
     progress = math.floor(percentage * 10)
     bar = "⟦ "
@@ -111,8 +126,17 @@ async def download_file(url, path, message):
     start_time = time.time()
     last_update = 0
     
+    # Convert Google Drive link if needed
+    url = convert_gdrive_link(url)
+    
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as response:
+            # Handle Google Drive warning page
+            if "warning" in response.headers.get("Set-Cookie", ""):
+                confirm_url = f"{url}&confirm=4&t={int(time.time())}"
+                async with session.get(confirm_url) as confirm_response:
+                    response = confirm_response
+            
             total = int(response.headers.get('Content-Length', 0))
             current = 0
             
@@ -289,6 +313,10 @@ async def token_command(client, message):
         return await message.reply("Please provide the authorization code: /token <code>")
     
     code = message.command[1]
+    # Extract code if URL is provided
+    if "http" in code:
+        code = extract_code_from_url(code)
+    
     flow = create_oauth_flow()
     
     try:
