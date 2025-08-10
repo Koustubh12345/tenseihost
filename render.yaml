@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: telegram-mirror-bot
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python bot.py
+    envVars:
+      - key: API_ID
+        value: "23048702"
+      - key: API_HASH
+        value: "2ce9a07cc844e09922a39c654c2fc9fa"
+      - key: BOT_TOKEN
+        value: "8109732136:AAGoVJURJtbUJuqcN84ciC5We2Ni3W4OMYM"
+      - key: BOT_USERNAME
+        value: "PixelsVaultbot"
+      - key: GDRIVE_FOLDER_ID
+        value: "1xYnlUfGdoTzoqKBUTgARXGfCD36IlqA9"
+      - key: ADMINS
+        value: "5431714552"
+      - key: BASE_URL
+        value: "https://tenseihost.onrender.com"
